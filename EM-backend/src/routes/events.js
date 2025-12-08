@@ -1,0 +1,175 @@
+const express = require('express');
+const Joi = require('joi');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+const Event = require('../models/Event');
+const Profile = require('../models/Profile');
+const asyncHandler = require('../middleware/asyncHandler');
+const { mapEventToTimezone } = require('../utils/time');
+
+// dayjs plugins - needed for timezone handling
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const router = express.Router();
+
+// schema for creating a new event - validates everything
+const eventSchema = Joi.object({
+  title: Joi.string().trim().min(1).required(),
+  timezone: Joi.string().trim().required(),
+  start: Joi.date().required(),
+  end: Joi.date().min(Joi.ref('start')).required(),  // end date validation
+  profiles: Joi.array().items(Joi.string().hex().length(24)).min(1).required(),
+});
+
+// update schema - all fields optional
+const eventUpdateSchema = eventSchema.fork(['title', 'timezone', 'start', 'end', 'profiles'], (schema) =>
+  schema.optional()
+);
+
+// POST - create new event
+router.post('/', asyncHandler(async (req, res) => {
+  const { error, value } = eventSchema.validate(req.body);
+  if (error) {
+    error.status = 400;
+    throw error;
+  }
+
+  // prevent duplicate profile IDs - user might accidentally send the same ID twice
+  const uniqueProfiles = [...new Set(value.profiles)];
+  const profiles = await Profile.find({ _id: { $in: uniqueProfiles } });
+  
+  // verify each profile actually exists in DB
+  if (profiles.length !== uniqueProfiles.length) {
+    const err = new Error('One or more profiles not found');
+    err.status = 404;
+    throw err;
+  }
+
+  const event = await Event.create({
+    ...value,
+    profiles: uniqueProfiles,
+    logs: []  // start with empty logs
+  });
+  res.status(201).json(event);
+}));
+
+// GET - retrieve all events with optional profile filter
+router.get('/', asyncHandler(async (req, res) => {
+  const { profileId, timezone: tz } = req.query;
+  const filter = {};
+  
+  // if user specified a profile, filter by it
+  if (profileId) {
+    filter.profiles = profileId;
+  }
+  
+  const events = await Event.find(filter)
+    .populate('profiles')
+    .sort({ start: 1 });  // chronological order
+  
+  // apply timezone conversion if requested
+  if (tz) {
+    return res.json(events.map((e) => mapEventToTimezone(e, tz)));
+  }
+  res.json(events);
+}));
+// GET - fetch one event by ID
+router.get('/:id', asyncHandler(async (req, res) => {
+  const { timezone: tz } = req.query;
+  const event = await Event.findById(req.params.id).populate('profiles');
+  
+  if (!event) {
+    const err = new Error('Event not found');
+    err.status = 404;
+    throw err;
+  }
+  
+  // convert to the requested timezone for display
+  if (tz) {
+    return res.json(mapEventToTimezone(event, tz));
+  }
+  res.json(event);
+}));
+// PATCH - update existing event
+router.patch('/:id', asyncHandler(async (req, res) => {
+  const { error, value } = eventUpdateSchema.validate(req.body);
+  if (error) {
+    error.status = 400;
+    throw error;
+  }
+
+  const event = await Event.findById(req.params.id);
+  if (!event) {
+    const err = new Error('Event not found');
+    err.status = 404;
+    throw err;
+  }
+
+  // track all the changes - important for audit trail
+  const changes = {};
+  ['title', 'timezone', 'start', 'end', 'profiles'].forEach((key) => {
+    if (value[key] !== undefined && value[key] !== null) {
+      // remove duplicates if profiles are being updated
+      const nextValue = key === 'profiles' ? [...new Set(value[key])] : value[key];
+      changes[key] = { from: event[key], to: nextValue };
+      event[key] = nextValue;
+    }
+  });
+
+  // validate that dates make sense
+  if (event.end < event.start) {
+    const err = new Error('End date cannot be before start date');
+    err.status = 400;
+    throw err;
+  }
+
+  // if profiles changed, verify they all exist
+  if (changes.profiles) {
+    const profiles = await Profile.find({ _id: { $in: event.profiles } });
+    if (profiles.length !== event.profiles.length) {
+      const err = new Error('One or more profiles not found');
+      err.status = 404;
+      throw err;
+    }
+  }
+
+  // only add log if something actually changed
+  if (Object.keys(changes).length > 0) {
+    event.logs.push({
+      timestamp: new Date(),
+      changes
+    });
+  }
+
+  await event.save();
+  res.json(event);
+}));
+
+// GET - fetch the audit trail for an event
+router.get('/:id/logs', asyncHandler(async (req, res) => {
+  const { timezone: tz } = req.query;
+  const event = await Event.findById(req.params.id);
+  
+  if (!event) {
+    const err = new Error('Event not found');
+    err.status = 404;
+    throw err;
+  }
+  
+  let logs = event.logs;
+  // convert each log timestamp to the requested timezone
+  if (tz) {
+    logs = logs.map((log) => {
+      const raw = log.toObject ? log.toObject() : log;
+      return {
+        ...raw,
+        timestamp: dayjs(raw.timestamp).tz(tz).toISOString()
+      };
+    });
+  }
+  res.json(logs);
+}));
+
+module.exports = router;
