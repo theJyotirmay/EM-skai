@@ -10,10 +10,25 @@ export default function App() {
   const { toast, clearToast } = useEvents();
   const [formProfiles, setFormProfiles] = useState([]);  // profiles selected for new event
 
+  const [isExiting, setIsExiting] = useState(false);
+
   // load all profiles when component mounts
   useEffect(() => {
     fetchProfiles();
   }, [fetchProfiles]);
+
+  // auto-dismiss toast
+  useEffect(() => {
+    if (toast) {
+      setIsExiting(false);
+      const exitTimer = setTimeout(() => setIsExiting(true), 2000);
+      const removeTimer = setTimeout(() => clearToast(), 2400);
+      return () => {
+        clearTimeout(exitTimer);
+        clearTimeout(removeTimer);
+      };
+    }
+  }, [toast, clearToast]);
 
   return (
     <div className="app-shell">
@@ -43,7 +58,7 @@ export default function App() {
       </div>
 
       {toast && (
-        <div className="toast" onClick={clearToast}>
+        <div className={`toast ${isExiting ? 'exiting' : ''}`} onClick={() => { setIsExiting(true); setTimeout(clearToast, 400); }}>
           {toast}
         </div>
       )}

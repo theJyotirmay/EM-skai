@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { timezones } from '../lib/timezones';
 import { useEvents } from '../store/useEvents';
+import { useProfiles } from '../store/useProfiles';
+import { fmt, fmtTime } from '../lib/helpers';
 import EventCard from './EventCard';
 import Modal from './Modal';
 import { useRef } from 'react';
@@ -8,6 +10,8 @@ import ProfileDropdown from './ProfileDropdown';
 import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
 
 // need timezone support for proper date display
 dayjs.extend(utc);
@@ -15,6 +19,7 @@ dayjs.extend(timezone);
 
 export default function EventList({ currentProfile }) {
   const { events, fetchEvents, updateEvent, fetchLogs, logs, viewTimezone } = useEvents();
+  const { profiles } = useProfiles();
   const [tz, setTz] = useState('UTC');  // viewing timezone
   const [editing, setEditing] = useState(null);  // event being edited
   const [editState, setEditState] = useState(null);
@@ -46,7 +51,7 @@ export default function EventList({ currentProfile }) {
       timezone: event.timezone,
       profiles: event.profiles || [],
     });
-    
+
     // parse dates from event in its original timezone
     const startDt = dayjs(event.start).tz(event.timezone);
     const endDt = dayjs(event.end).tz(event.timezone);
@@ -56,19 +61,116 @@ export default function EventList({ currentProfile }) {
     setEditEndTime(endDt.format('HH:mm'));
   };
 
+  // Initialize flatpickr when edit modal opens
+  useEffect(() => {
+    if (!editing) return;
+
+    // Small delay to ensure refs are attached to DOM
+    const timer = setTimeout(() => {
+      // Start date picker
+      if (editStartDateRef.current) {
+        editStartDatePicker.current = flatpickr(editStartDateRef.current, {
+          altInput: true,
+          altFormat: 'M j, Y',
+          dateFormat: 'Y-m-d',
+          defaultDate: editStart || null,
+          minDate: 'today',  // prevent past dates
+          onChange: (selectedDates) => {
+            const v = selectedDates?.[0] ? dayjs(selectedDates[0]).format('YYYY-MM-DD') : '';
+            setEditStart(v);
+
+            // if new start date is after current end date, reset end date
+            if (editEnd && v && dayjs(v).isAfter(dayjs(editEnd))) {
+              setEditEnd('');
+              if (editEndDatePicker.current) {
+                editEndDatePicker.current.setDate(null);
+              }
+            }
+
+            // update minDate for end picker
+            if (editEndDatePicker.current) {
+              editEndDatePicker.current.set('minDate', v || 'today');
+            }
+          },
+        });
+      }
+
+      // Start time picker
+      if (editStartTimeRef.current) {
+        editStartTimePicker.current = flatpickr(editStartTimeRef.current, {
+          enableTime: true,
+          noCalendar: true,
+          dateFormat: 'H:i',
+          altInput: true,
+          altFormat: 'h:i K',
+          defaultDate: `2000-01-01 ${editStartTime}`,
+          minuteIncrement: 15,
+          onChange: (selectedDates, str) => {
+            const timeStr = str || dayjs(selectedDates?.[0]).format('HH:mm');
+            setEditStartTime(timeStr);
+
+            // if same day, auto adjust end time if invalid
+            if (editStart === editEnd) {
+              // ... logic similar to create form
+            }
+          },
+        });
+      }
+
+      // End date picker
+      if (editEndDateRef.current) {
+        editEndDatePicker.current = flatpickr(editEndDateRef.current, {
+          altInput: true,
+          altFormat: 'M j, Y',
+          dateFormat: 'Y-m-d',
+          defaultDate: editEnd || null,
+          minDate: editStart || 'today', // can't be before start
+          onChange: (selectedDates) => {
+            const v = selectedDates?.[0] ? dayjs(selectedDates[0]).format('YYYY-MM-DD') : '';
+            setEditEnd(v);
+          },
+        });
+      }
+
+      // End time picker
+      if (editEndTimeRef.current) {
+        editEndTimePicker.current = flatpickr(editEndTimeRef.current, {
+          enableTime: true,
+          noCalendar: true,
+          dateFormat: 'H:i',
+          altInput: true,
+          altFormat: 'h:i K',
+          defaultDate: `2000-01-01 ${editEndTime}`,
+          minuteIncrement: 15,
+          onChange: (selectedDates, str) => {
+            setEditEndTime(str || dayjs(selectedDates?.[0]).format('HH:mm'));
+          },
+        });
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      editStartDatePicker.current?.destroy();
+      editStartTimePicker.current?.destroy();
+      editEndDatePicker.current?.destroy();
+      editEndTimePicker.current?.destroy();
+    };
+  }, [editing]);
+
   const submitEdit = async () => {
     const tzVal = editState.timezone;
     const startDateTime = dayjs.tz(`${editStart} ${editStartTime}`, 'YYYY-MM-DD HH:mm', tzVal).toISOString();
     const endDateTime = dayjs.tz(`${editEnd} ${editEndTime}`, 'YYYY-MM-DD HH:mm', tzVal).toISOString();
-    
+
     const payload = {
-      title: `Event on ${editStart}`,
+      title: editing.title,
       timezone: tzVal,
       start: startDateTime,
       end: endDateTime,
       profiles: editState.profiles.map((p) => p._id),
     };
-    
+
     await updateEvent(editing._id, payload);
     setEditing(null);
     fetchEvents({ profileId: currentProfile?._id, timezone: tz });  // refresh the list
@@ -186,24 +288,51 @@ export default function EventList({ currentProfile }) {
           <div className="empty-state">No logs yet</div>
         ) : (
           <div style={{ display: 'grid', gap: 12 }}>
-            {logs.map((log, idx) => {
-              const changesText = Object.entries(log.changes || {})
-                .map(([field]) => field)
-                .join(', ');
-              return (
-                <div key={idx} style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                    {dayjs(log.timestamp).tz(tz).format('MMM D, YYYY [at] hh:mm A')}
-                  </div>
-                  <div style={{ color: '#64748b', fontSize: 14 }}>
-                    Updated {changesText}
-                  </div>
+            {logs.map((log, idx) => (
+              <div key={idx} style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>
+                <div style={{ fontWeight: 600, marginBottom: 8, color: '#1e293b' }}>
+                  {dayjs(log.timestamp).tz(tz).format('MMM D, YYYY [at] hh:mm A')}
                 </div>
-              );
-            })}
+                <div style={{ fontSize: 13, gap: 4, display: 'flex', flexDirection: 'column' }}>
+                  {Object.entries(log.changes || {}).map(([key, val]) => {
+                    if (key === 'timezone') {
+                      const fromLabel = timezones.find(t => t.value === val.from)?.label || val.from;
+                      const toLabel = timezones.find(t => t.value === val.to)?.label || val.to;
+                      return (
+                        <div key={key} style={{ color: '#475569' }}>
+                          Updated timezone from <strong>{fromLabel}</strong> to <strong>{toLabel}</strong>
+                        </div>
+                      );
+                    }
+                    if (key === 'start') {
+                      return (
+                        <div key={key} style={{ color: '#475569' }}>
+                          Updated start time from <strong>{fmt(val.from, tz)} {fmtTime(val.from, tz)}</strong> to <strong>{fmt(val.to, tz)} {fmtTime(val.to, tz)}</strong>
+                        </div>
+                      );
+                    }
+                    if (key === 'end') {
+                      return (
+                        <div key={key} style={{ color: '#475569' }}>
+                          Updated end time from <strong>{fmt(val.from, tz)} {fmtTime(val.from, tz)}</strong> to <strong>{fmt(val.to, tz)} {fmtTime(val.to, tz)}</strong>
+                        </div>
+                      );
+                    }
+                    if (key === 'profiles') {
+                      return (
+                        <div key={key} style={{ color: '#475569' }}>
+                          Updated participant list
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </Modal>
-      </>
-    );
-  }
+    </>
+  );
+}

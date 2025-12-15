@@ -9,7 +9,7 @@ export const useEvents = create((set, get) => ({
   error: null,
   toast: null,  // success notifications
   viewTimezone: 'UTC',
-  
+
   // fetch events with optional profile filter
   async fetchEvents({ profileId, timezone }) {
     set({ loading: true, error: null });
@@ -26,14 +26,17 @@ export const useEvents = create((set, get) => ({
       set({ error: err.message, loading: false });
     }
   },
-  
+
   // create a new event
   async createEvent(payload) {
     const res = await api.post('/events', payload);
-    set({ toast: 'Event created successfully' });
+    set((state) => ({
+      toast: 'Event created successfully',
+      events: [res.data, ...state.events]
+    }));
     return res.data;
   },
-  
+
   // update an existing event
   async updateEvent(id, payload) {
     const res = await api.patch(`/events/${id}`, payload);
@@ -44,14 +47,14 @@ export const useEvents = create((set, get) => ({
     });
     return res.data;
   },
-  
+
   // fetch the audit log for an event
   async fetchLogs(id, timezone) {
     const res = await api.get(`/events/${id}/logs`, { params: { timezone } });
     set({ logs: res.data });
     return res.data;
   },
-  
+
   clearToast() {
     set({ toast: null });
   },
