@@ -6,23 +6,25 @@ import { useProfiles } from './store/useProfiles';
 import { useEvents } from './store/useEvents';
 
 export default function App() {
-  const { currentProfile, setCurrent, fetchProfiles } = useProfiles();
+  const { currentProfile, setCurrent: setCurrentProfile, fetchProfiles } = useProfiles();
   const { toast, clearToast } = useEvents();
-  const [formProfiles, setFormProfiles] = useState([]);  // profiles selected for new event
 
-  const [isExiting, setIsExiting] = useState(false);
+  // State for profiles selected in the creating form
+  const [selectedEventProfiles, setSelectedEventProfiles] = useState([]);
+  const [isToastExiting, setIsToastExiting] = useState(false);
 
-  // load all profiles when component mounts
+  // Load all profiles when component mounts
   useEffect(() => {
     fetchProfiles();
   }, [fetchProfiles]);
 
-  // auto-dismiss toast
+  // Auto-dismiss toast notifications
   useEffect(() => {
     if (toast) {
-      setIsExiting(false);
-      const exitTimer = setTimeout(() => setIsExiting(true), 2000);
+      setIsToastExiting(false);
+      const exitTimer = setTimeout(() => setIsToastExiting(true), 2000);
       const removeTimer = setTimeout(() => clearToast(), 2400);
+
       return () => {
         clearTimeout(exitTimer);
         clearTimeout(removeTimer);
@@ -40,7 +42,7 @@ export default function App() {
         <div style={{ minWidth: 260 }}>
           <ProfileDropdown
             selected={currentProfile}
-            onChange={(p) => setCurrent(p)}
+            onChange={(profile) => setCurrentProfile(profile)}
             label="Select current profile"
           />
         </div>
@@ -48,9 +50,9 @@ export default function App() {
 
       <div className="grid">
         <EventForm
-          profilesSelected={formProfiles}
-          onProfilesChange={setFormProfiles}
-          onCreated={() => setFormProfiles([])}
+          profilesSelected={selectedEventProfiles}
+          onProfilesChange={setSelectedEventProfiles}
+          onCreated={() => setSelectedEventProfiles([])}
         />
         <div className="card">
           <EventList currentProfile={currentProfile} />
@@ -58,7 +60,10 @@ export default function App() {
       </div>
 
       {toast && (
-        <div className={`toast ${isExiting ? 'exiting' : ''}`} onClick={() => { setIsExiting(true); setTimeout(clearToast, 400); }}>
+        <div
+          className={`toast ${isToastExiting ? 'exiting' : ''}`}
+          onClick={() => { setIsToastExiting(true); setTimeout(clearToast, 400); }}
+        >
           {toast}
         </div>
       )}
