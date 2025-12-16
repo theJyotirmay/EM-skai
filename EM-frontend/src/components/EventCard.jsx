@@ -2,7 +2,7 @@
 import React from 'react';
 import { fmt, fmtTime } from '../lib/helpers';
 
-// SVG icon components for the card
+
 function UserIcon() {
   return (
     <span className="icon user-icon" aria-label="user" style={{ marginRight: 8 }}>

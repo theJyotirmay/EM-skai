@@ -6,13 +6,13 @@ import EventFormBody from './EventFormBody';
 export default function EventForm({ profilesSelected, onProfilesChange, onCreated }) {
   const { createEvent } = useEvents();
 
-  // Use the custom hook for form logic
+
   const formState = useEventFormState();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
+
     if (!profilesSelected || profilesSelected.length === 0) {
       return;
     }
@@ -21,7 +21,7 @@ export default function EventForm({ profilesSelected, onProfilesChange, onCreate
       return;
     }
 
-    // Get formatted ISO strings
+
     const { start, end } = formState.getISOValues();
 
     const newEvent = {
@@ -33,7 +33,7 @@ export default function EventForm({ profilesSelected, onProfilesChange, onCreate
 
     const createdEvent = await createEvent(newEvent);
 
-    // Reset form for next entry
+
     formState.resetForm();
     onCreated?.(createdEvent);
   };

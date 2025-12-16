@@ -8,7 +8,7 @@ export default function EventFormBody({
     profiles,
     onProfilesChange,
 
-    // From useEventFormState hook
+
     selectedTimezone,
     setSelectedTimezone,
     startDate,

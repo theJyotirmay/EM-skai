@@ -17,7 +17,7 @@ export default function ProfileDropdown({ label, multi = false, selected, onChan
     }
   }, [profiles.length, fetchProfiles]);
 
-  // Close dropdown when clicking outside
+
   useEffect(() => {
     if (!open) return;
     const handleClick = (e) => {

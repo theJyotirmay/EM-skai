@@ -9,16 +9,16 @@ export default function App() {
   const { currentProfile, setCurrent: setCurrentProfile, fetchProfiles } = useProfiles();
   const { toast, clearToast } = useEvents();
 
-  // State for profiles selected in the creating form
+
   const [selectedEventProfiles, setSelectedEventProfiles] = useState([]);
   const [isToastExiting, setIsToastExiting] = useState(false);
 
-  // Load all profiles when component mounts
+
   useEffect(() => {
     fetchProfiles();
   }, [fetchProfiles]);
 
-  // Auto-dismiss toast notifications
+
   useEffect(() => {
     if (toast) {
       setIsToastExiting(false);

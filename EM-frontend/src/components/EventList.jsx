@@ -11,7 +11,7 @@ import Modal from './Modal';
 import EventFormBody from './EventFormBody';
 import { useEventFormState } from '../hooks/useEventFormState';
 
-// Initialize Day.js plugins for timezone support (needed for logs display)
+
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -19,21 +19,21 @@ export default function EventList({ currentProfile }) {
   const { events, fetchEvents, updateEvent, fetchLogs, logs } = useEvents();
   const { profiles } = useProfiles();
 
-  // View State
+
   const [viewingTimezone, setViewingTimezone] = useState('America/New_York');
   const [editingEvent, setEditingEvent] = useState(null);
   const [editProfiles, setEditProfiles] = useState([]);
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
 
-  // Form logic for the Edit Modal
+
   const editFormState = useEventFormState(editingEvent);
 
-  // Fetch events when profile or viewing timezone changes
+
   useEffect(() => {
     fetchEvents({ profileId: currentProfile?._id, timezone: viewingTimezone });
   }, [currentProfile, viewingTimezone, fetchEvents]);
 
-  // Sync profiles when `editingEvent` changes
+
   useEffect(() => {
     if (editingEvent) {
       setEditProfiles(editingEvent.profiles || []);
@@ -54,7 +54,7 @@ export default function EventList({ currentProfile }) {
 
     await updateEvent(editingEvent._id, payload);
     setEditingEvent(null);
-    // Refresh list to show updates
+
     fetchEvents({ profileId: currentProfile?._id, timezone: viewingTimezone });
   };
 
@@ -95,7 +95,7 @@ export default function EventList({ currentProfile }) {
         </div>
       )}
 
-      {/* Edit Event Modal */}
+
       <Modal
         open={!!editingEvent}
         title="Edit Event"
@@ -116,7 +116,7 @@ export default function EventList({ currentProfile }) {
         )}
       </Modal>
 
-      {/* Logs Modal */}
+
       <Modal open={isLogsModalOpen} title="Update Logs" onClose={() => setIsLogsModalOpen(false)}>
         {logs.length === 0 ? (
           <div className="empty-state">No logs yet</div>

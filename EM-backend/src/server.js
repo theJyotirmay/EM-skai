@@ -2,9 +2,7 @@ require('dotenv').config();
 const app = require('./app');
 const connectDb = require('./config/db');
 
-const PORT = process.env.PORT || 4000;  // default to 4000 if env var not set
-
-// startup - gotta connect to DB first, then start listening
+const PORT = process.env.PORT || 4000;
 (async () => {
   try {
     await connectDb();

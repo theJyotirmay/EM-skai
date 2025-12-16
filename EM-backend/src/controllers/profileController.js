@@ -1,13 +1,13 @@
 const Joi = require('joi');
 const Profile = require('../models/Profile');
 
-// profile creation schema
+//schema to create profiles
 const profileSchema = Joi.object({
     name: Joi.string().trim().min(1).required(),
     timezone: Joi.string().trim().required(),
 });
 
-// profile update schema - at least one field
+//schema to update profiles (at least one field)
 const profileUpdateSchema = Joi.object({
     name: Joi.string().trim().min(1),
     timezone: Joi.string().trim(),
@@ -20,7 +20,7 @@ const createProfile = async (req, res) => {
         throw error;
     }
 
-    // check if profile name is already taken
+    //check if profile name is taken
     const existing = await Profile.findOne({ name: value.name });
     if (existing) {
         const err = new Error('Profile name already exists');
@@ -33,7 +33,7 @@ const createProfile = async (req, res) => {
 };
 
 const getProfiles = async (_req, res) => {
-    const profiles = await Profile.find().sort({ createdAt: -1 });  // newest profiles first
+    const profiles = await Profile.find().sort({ createdAt: -1 });  //newest profiles first
     res.json(profiles);
 };
 
@@ -51,7 +51,7 @@ const updateProfile = async (req, res) => {
         throw err;
     }
 
-    // if changing name, make sure it's not already taken
+    //if changing name, make sure it's not taken
     if (value.name && value.name !== profile.name) {
         const existing = await Profile.findOne({ name: value.name });
         if (existing) {

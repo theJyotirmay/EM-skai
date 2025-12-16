@@ -13,7 +13,7 @@ export function useEventFormState(initialData = null) {
     const [endDate, setEndDate] = useState(initialData?.end ? dayjs(initialData.end).tz(initialData.timezone).format('YYYY-MM-DD') : '');
     const [endTime, setEndTime] = useState(initialData?.end ? dayjs(initialData.end).tz(initialData.timezone).format('HH:mm') : '09:00');
 
-    // Handle updates to initialData (e.g. when opening edit modal for different event)
+
     useEffect(() => {
         if (initialData) {
             setSelectedTimezone(initialData.timezone);

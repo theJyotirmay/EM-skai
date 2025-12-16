@@ -33,11 +33,11 @@ export default function DatePickerInput({
         return () => pickerRef.current?.destroy();
     }, []);
 
-    // Update options dynamically
+
     useEffect(() => {
         if (pickerRef.current) {
             Object.entries(options).forEach(([key, val]) => {
-                // Only update if value matches expected type (simple check)
+
                 if (key === 'minDate' || key === 'minTime' || key === 'maxDate') {
                     pickerRef.current.set(key, val);
                 }
@@ -45,11 +45,11 @@ export default function DatePickerInput({
         }
     }, [options.minDate, options.minTime, options.maxDate]);
 
-    // Sync external value changes
+
     useEffect(() => {
         if (pickerRef.current) {
             const currentValue = pickerRef.current.selectedDates[0];
-            // simplified check; for strings verify equality
+
             if (value !== currentValue && value !== pickerRef.current.input.value) {
                 pickerRef.current.setDate(value || null, false);
             }

@@ -424,7 +424,7 @@ h1 {
   flex-wrap: wrap;
 }
 
-/* Flatpickr overrides to match accent */
+
 .flatpickr-calendar {
   font-family: var(--font);
   border: 1px solid var(--border);
@@ -494,7 +494,7 @@ h1 {
   color: var(--text);
 }
 
-/* Clean Time Picker Design */
+
 .flatpickr-time {
   border-top: none !important;
   padding: 20px 0 !important;
@@ -506,7 +506,7 @@ h1 {
   height: auto !important;
 }
 
-/* Hide default borders and backgrounds */
+
 .flatpickr-time input {
   background: transparent !important;
   border: none !important;
@@ -514,7 +514,7 @@ h1 {
   font-family: var(--font) !important;
 }
 
-/* Styling the hour/minute inputs */
+
 .flatpickr-time .numInput,
 .flatpickr-time input.flatpickr-hour,
 .flatpickr-time input.flatpickr-minute {
@@ -527,14 +527,14 @@ h1 {
   letter-spacing: -1px;
 }
 
-/* Hover/Focus states for inputs */
+
 .flatpickr-time input:hover,
 .flatpickr-time input:focus {
   background: #f1f5f9 !important;
   border-radius: 8px !important;
 }
 
-/* The separator (:) */
+
 .flatpickr-time .flatpickr-time-separator {
   font-size: 28px !important;
   font-weight: 400 !important;
@@ -544,7 +544,7 @@ h1 {
   align-items: center !important;
 }
 
-/* AM/PM Toggle */
+
 .flatpickr-time .flatpickr-am-pm {
   font-size: 16px !important;
   font-weight: 600 !important;
@@ -566,7 +566,7 @@ h1 {
   transform: translateY(-1px);
 }
 
-/* Restore arrows but make them subtle */
+
 .flatpickr-time .numInputWrapper span {
   display: block !important;
   opacity: 0;
@@ -575,7 +575,7 @@ h1 {
   background: transparent !important;
 }
 
-/* Show arrows when hovering the input wrapper */
+
 .flatpickr-time .numInputWrapper:hover span {
   opacity: 1;
 }
@@ -584,7 +584,7 @@ h1 {
   background: rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Arrow styling */
+
 .flatpickr-time .numInputWrapper span:after {
   border-top-color: var(--muted) !important;
 }
@@ -594,12 +594,12 @@ h1 {
   border-top-color: transparent !important;
 }
 
-/* Fix wrapper container */
+
 .flatpickr-calendar.hasTime .flatpickr-time {
   border-top: 1px solid var(--border) !important;
 }
 
-/* Time only mode container */
+
 .flatpickr-calendar.noCalendar {
   padding: 10px !important;
   border-radius: 20px !important;
